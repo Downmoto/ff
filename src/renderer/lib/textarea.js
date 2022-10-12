@@ -2,6 +2,7 @@
 
 export default function Textarea() {
   this.el = document.createElement("textarea");
+  this.el.className = 'editor'
 
   this.install = (host) => {
     this.el.setAttribute("autocomplete", "off");

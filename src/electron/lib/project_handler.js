@@ -1,36 +1,108 @@
 "use strict";
 import { DEBUG } from "../consts/debug";
 
+
+// imports
 import { app, dialog, ipcMain } from "electron";
-import { mkdir, openSync, closeSync } from "fs";
+import { mkdir, openSync, closeSync, rmSync } from "fs";
 import { logger } from "./logger";
 import { join } from "path";
 
-const zl = require("zip-lib");
+var AdmZip = require("adm-zip");
 
+// project structure
 const structure = {
   dirs: ["images", "notes", "scenes"],
   meta: "meta.json",
 };
 
+// project paths
+var project = {
+  temps: {
+    tempName: "",
+    temp: "",
+  },
+  location: "",
+  metaFile: "",
+  dirs: {
+    images: "",
+    notes: "",
+    scenes: "",
+  },
+};
+
+// cleanup temp folder
+app.on('before-quit', (e) => {
+  rmSync(project.temps.temp, {recursive: true, force: true})
+})
+
+function saveProject() {}
+
 function newProject(path) {
-  let temp = join(app.getPath('temp'), 'ff')
-  mkdir(temp, { recursive: true }, (e, path) =>
-    logger.info(`created new project at: ${path}`)
-  );
-  structure.dirs.forEach((dir) => {
-    mkdir(`${temp}/${dir}`, (e) => {
-      if (e) logger.error(`unable to create new ${dir} directory. ERROR: ${e}`);
+  // if dialog was not canceled
+  if (path) {
+    // set project paths
+    project.temps.tempName = `ff-${Date.now()}`;
+    project.temps.temp = join(app.getPath("temp"), project.temps.tempName);
+    project.location = path;
+
+    let temp = project.temps.temp; // ease
+
+    // create project structure
+    mkdir(temp, { recursive: true }, (e, path) =>
+      logger.info(`created new project at: ${path}`)
+    );
+    structure.dirs.forEach((dir) => {
+      mkdir(`${temp}/${dir}`, (e) => {
+        if (e)
+          logger.error(`unable to create new ${dir} directory. ERROR: ${e}`);
+      });
     });
-  });
 
-  let file = openSync(`${temp}/${structure.meta}`, "w");
-  closeSync(file)
+    // set project paths
+    project.dirs.images = `${temp}/${structure.dirs[0]}`;
+    project.dirs.notes = `${temp}/${structure.dirs[1]}`;
+    project.dirs.scenes = `${temp}/${structure.dirs[2]}`;
 
+    // create meta.json in project
+    let file = openSync(`${temp}/${structure.meta}`, "w");
+    closeSync(file);
 
-  zl.archiveFolder(temp, path).then(() => {
-    console.log('done')
-  }).catch(err => console.log(err))
+    // set project paths
+    project.metaFile = `${temp}/${structure.meta}`;
+
+    // compress project 
+    let zip = new AdmZip()
+    zip.addLocalFolder(temp)
+    zip.writeZip(path)
+
+    return project;
+  }
+  return undefined;
+}
+
+function openProject(p) {
+  // if dialog not canceled
+  if (!p.canceled) {
+    // set project paths
+    project.temps.tempName = `ff-${Date.now()}`;
+    project.temps.temp = join(app.getPath("temp"), project.temps.tempName);
+    project.location = p.filePaths[0];
+
+    let temp = project.temps.temp; // ease
+
+    // open and extract file to temp
+    let zip = new AdmZip(project.location)
+    zip.extractAllTo(temp)
+
+    // set project paths
+    project.dirs.images = `${temp}/${structure.dirs[0]}`;
+    project.dirs.notes = `${temp}/${structure.dirs[1]}`;
+    project.dirs.scenes = `${temp}/${structure.dirs[2]}`;
+
+    return project;
+  }
+  return undefined;
 }
 
 ipcMain.handle("DIALOG::NEW", async () => {
@@ -41,32 +113,19 @@ ipcMain.handle("DIALOG::NEW", async () => {
     filters: [{ name: "f", extensions: ["ff"] }],
   });
 
-  if (d) newProject(d);
-  return d;
+  return newProject(d);
 });
 
-function openProject(p) {
-  let path = p[0]
-  let project = {
-    metaFile: join(path, 'meta.json'),
-    dirs: {
-      images: join(path, 'images'),
-      notes: join(path, 'notes'),
-      scenes: join(path, 'scenes'),
-    }
-  }
-
-  console.log(project)
-}
-
 ipcMain.handle("DIALOG::OPEN", async () => {
-  const d = dialog.showOpenDialogSync({
+  const d = await dialog.showOpenDialog({
     title: "Open project",
     defaultPath: DEBUG ? __dirname : app.getPath("documents"),
     buttonLabel: "Open project",
-    properties: ["openDirectory"],
+    filters: [{ name: "f", extensions: ["ff"] }],
   });
 
-  if (d) openProject(d);
-  return d;
-})
+  return openProject(d);
+});
+
+// TODO: save as dialog
+// ipcMain.handle("DIALOG::SAVEAS")

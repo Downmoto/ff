@@ -1,4 +1,6 @@
 'use strict'
+
+// DEPRECIATING, MOVING TO ELECTRON NATIVE FUNCTIONALITY
 import { DEBUG } from "../consts/debug";
 
 

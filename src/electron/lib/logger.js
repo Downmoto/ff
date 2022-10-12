@@ -2,12 +2,14 @@
 import { DEBUG } from "../consts/debug";
 
 
+// imports
 import winston from 'winston';
 import { ipcMain } from 'electron';
 import { join as pathJoin } from "path";
 import { userData } from '../consts/userdata';
 
 
+// create logger
 export const logger = winston.createLogger({
   level: DEBUG ? 'debug' : 'info',
   format: winston.format.combine(
@@ -20,6 +22,7 @@ export const logger = winston.createLogger({
   ],
 });
 
+// log to console while in development
 if (DEBUG) {
   logger.add(
     new winston.transports.Console({
@@ -30,6 +33,7 @@ if (DEBUG) {
   );
 }
 
+// handle renderer logging
 ipcMain.on("LOGGER::LOG", (e, {level, msg}) => {
     logger.log({
         level: level,

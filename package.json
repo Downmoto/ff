@@ -1,11 +1,11 @@
 {
-  "name": "f",
-  "productName": "f",
+  "name": "double-f",
+  "productName": "double f",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Simple writing application based on Markdown",
   "main": ".webpack/main",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "electron-forge start --inspect-electron",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -79,6 +79,7 @@
     "style-loader": "^3.0.0"
   },
   "dependencies": {
+    "adm-zip": "^0.5.9",
     "dotenv": "^16.0.3",
     "electron-squirrel-startup": "^1.0.0",
     "winston": "^3.8.2",

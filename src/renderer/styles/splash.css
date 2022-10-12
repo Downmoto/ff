@@ -22,3 +22,10 @@ body {
     line-height: 30px;
     user-select: none;
 }
+
+.splash-btn:hover {
+    color: black;
+    background-color: pink;
+    border-radius: 10px;
+    cursor: pointer;
+}
