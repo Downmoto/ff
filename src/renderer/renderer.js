@@ -1,13 +1,11 @@
 import './styles';
-import f from './f'
+import "./lib/splash";
+import surrender from './surrender'
 
-const app = new f()
 
 window.addEventListener('kill-splash', (event) => {
-    console.log(event)
+    const app = new surrender(event.detail);
+
     app.install();
     app.start();
 })
-
-app.install();
-app.start();

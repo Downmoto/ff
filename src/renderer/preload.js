@@ -10,6 +10,10 @@ contextBridge.exposeInMainWorld("logger", {
 
 
 contextBridge.exposeInMainWorld("dialog", {
-  openProject: () => ipcRenderer.invoke('DIALOG::OPEN'),
-  newProject: () => ipcRenderer.invoke('DIALOG::NEW')
+  openProject: () => ipcRenderer.invoke("DIALOG::OPEN"),
+  newProject: () => ipcRenderer.invoke("DIALOG::NEW"),
+});
+
+contextBridge.exposeInMainWorld('contextMenu', {
+  navCM: (template) => ipcRenderer.send('CONTEXT::NAV', template) 
 })

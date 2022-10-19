@@ -13,8 +13,8 @@ body {
 }
 
 .splash-btn {
-    color: antiquewhite;
-    background-color: black;
+    color: #001011;
+    background-color: #E9B44C;
     border-radius: 10px;
     min-width: 70px;
     min-height: 30px;
@@ -24,7 +24,7 @@ body {
 }
 
 .splash-btn:hover {
-    color: black;
+    color: #001011;
     background-color: pink;
     border-radius: 10px;
     cursor: pointer;

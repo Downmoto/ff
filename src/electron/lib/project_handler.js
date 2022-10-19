@@ -1,80 +1,120 @@
 "use strict";
 import { DEBUG } from "../consts/debug";
 
-
 // imports
-import { app, dialog, ipcMain } from "electron";
-import { mkdir, openSync, closeSync, rmSync } from "fs";
+import { app, dialog, ipcMain, Menu, BrowserWindow } from "electron";
+import { mkdir, openSync, closeSync, rmSync, mkdirSync } from "fs";
 import { logger } from "./logger";
-import { join } from "path";
+import { join, parse } from "path";
+var glob = require("glob");
 
 var AdmZip = require("adm-zip");
 
-// project structure
-const structure = {
-  dirs: ["images", "notes", "scenes"],
-  meta: "meta.json",
-};
-
-// project paths
+// project metadata in memory
 var project = {
-  temps: {
-    tempName: "",
-    temp: "",
-  },
+  temp: "",
   location: "",
   metaFile: "",
-  dirs: {
-    images: "",
-    notes: "",
-    scenes: "",
+  structure: {
+    directoryName: "projectRoot",
+    files: [],
+    directories: [],
   },
+  name: "",
 };
 
 // cleanup temp folder
-app.on('before-quit', (e) => {
-  rmSync(project.temps.temp, {recursive: true, force: true})
-})
+app.on("before-quit", (e) => {
+  rmSync(project.temp, { recursive: true, force: true });
+});
 
-function saveProject() {}
+function getDirs(src) {
+  let meta = { directories: [], files: [] };
+  let res = glob.sync(src + "/**/*");
+  console.log(res)
+  let raw = [];
+  res.forEach((elem) => raw.push(elem.split("--/")[1]));
+
+  for (const path of raw) {
+    let temp_loc = meta;
+    for (const s of path.split("/")) {
+      if (s.includes(".")) {
+        temp_loc["files"].push(s);
+      } else {
+        let found = false;
+        for (const directory of temp_loc["directories"]) {
+          if (directory["directoryName"] === s) {
+            var parent = directory["directoryName"]; 
+            temp_loc = directory;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          temp_loc["directories"].push({
+            directoryName: s,
+            parent: parent == s ? 'projectRoot' : parent,
+            files: [],
+            directories: [],
+          });
+          temp_loc = temp_loc["directories"].slice(-1)[0];
+        }
+      }
+    }
+  }
+  project.structure.files = meta.files;
+  project.structure.directories = meta.directories;
+  console.log(JSON.stringify(meta, null, 4))
+}
 
 function newProject(path) {
   // if dialog was not canceled
   if (path) {
+    // project structure
+    const newProjectStructure = {
+      dirs: ["images", "notes", "scenes"],
+      meta: "meta.json",
+    };
+
+    project.name = parse(path).name;
+
     // set project paths
-    project.temps.tempName = `ff-${Date.now()}`;
-    project.temps.temp = join(app.getPath("temp"), project.temps.tempName);
+    project.temp = join(app.getPath("temp"), `ff-${Date.now()}--`);
     project.location = path;
 
-    let temp = project.temps.temp; // ease
+    let temp = project.temp;
 
     // create project structure
     mkdir(temp, { recursive: true }, (e, path) =>
       logger.info(`created new project at: ${path}`)
     );
-    structure.dirs.forEach((dir) => {
-      mkdir(`${temp}/${dir}`, (e) => {
-        if (e)
-          logger.error(`unable to create new ${dir} directory. ERROR: ${e}`);
-      });
+    newProjectStructure.dirs.forEach((dir) => {
+      let e = mkdirSync(`${temp}/${dir}`);
+      let n = mkdirSync(`${temp}/${dir}/okidoki`);
+
+      if (e) logger.error(`unable to create new ${dir} directory. ERROR: ${e}`);
     });
 
-    // set project paths
-    project.dirs.images = `${temp}/${structure.dirs[0]}`;
-    project.dirs.notes = `${temp}/${structure.dirs[1]}`;
-    project.dirs.scenes = `${temp}/${structure.dirs[2]}`;
+     mkdirSync(`${temp}/notes/b`);
+     mkdirSync(`${temp}/notes/b/k`);
+
 
     // create meta.json in project
-    let file = openSync(`${temp}/${structure.meta}`, "w");
+    let file = openSync(`${temp}/${newProjectStructure.meta}`, "w");
     closeSync(file);
 
-    // set project paths
-    project.metaFile = `${temp}/${structure.meta}`;
+    let sceneFile = openSync(`${temp}/scenes/scene-one.txt`, "w");
+    closeSync(sceneFile);
 
-    // compress project 
-    let zip = new AdmZip()
-    zip.addLocalFolder(temp)
-    zip.writeZip(path)
+    getDirs(temp);
+
+    // set project paths
+    project.metaFile = `${temp}/${newProjectStructure.meta}`;
+
+    // compress project
+    let zip = new AdmZip();
+    zip.addLocalFolder(temp);
+    zip.writeZip(path);
 
     return project;
   }
@@ -84,26 +124,30 @@ function newProject(path) {
 function openProject(p) {
   // if dialog not canceled
   if (!p.canceled) {
-    // set project paths
-    project.temps.tempName = `ff-${Date.now()}`;
-    project.temps.temp = join(app.getPath("temp"), project.temps.tempName);
-    project.location = p.filePaths[0];
+    let path = p.filePaths[0];
 
-    let temp = project.temps.temp; // ease
+    project.name = parse(path).name;
+
+    // set project paths
+    project.temp = join(app.getPath("temp"), `ff-${Date.now()}--`);
+    project.location = path;
+
+    let temp = project.temp;
 
     // open and extract file to temp
-    let zip = new AdmZip(project.location)
-    zip.extractAllTo(temp)
+    let zip = new AdmZip(project.location);
+    zip.extractAllTo(temp);
 
-    // set project paths
-    project.dirs.images = `${temp}/${structure.dirs[0]}`;
-    project.dirs.notes = `${temp}/${structure.dirs[1]}`;
-    project.dirs.scenes = `${temp}/${structure.dirs[2]}`;
+    getDirs(temp);
+
+    project.metaFile = `${temp}/meta.json`;
 
     return project;
   }
   return undefined;
 }
+
+function saveProject() {}
 
 ipcMain.handle("DIALOG::NEW", async () => {
   const d = dialog.showSaveDialogSync({
@@ -129,3 +173,12 @@ ipcMain.handle("DIALOG::OPEN", async () => {
 
 // TODO: save as dialog
 // ipcMain.handle("DIALOG::SAVEAS")
+
+
+export function newDir(folder) {
+  console.log(folder)
+}
+
+export function newFile() {}
+
+export function newFileFromExplorer() {}

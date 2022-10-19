@@ -1,6 +1,6 @@
 {
-  "name": "double-f",
-  "productName": "double f",
+  "name": "surrender",
+  "productName": "surrender",
   "version": "1.0.0",
   "description": "Simple writing application based on Markdown",
   "main": ".webpack/main",
@@ -8,8 +8,7 @@
     "start": "electron-forge start --inspect-electron",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "publish": "electron-forge publish"
   },
   "keywords": [],
   "author": {
@@ -82,7 +81,6 @@
     "adm-zip": "^0.5.9",
     "dotenv": "^16.0.3",
     "electron-squirrel-startup": "^1.0.0",
-    "winston": "^3.8.2",
-    "zip-lib": "^0.7.3"
+    "winston": "^3.8.2"
   }
 }
