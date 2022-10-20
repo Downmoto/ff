@@ -1,13 +1,11 @@
+export class Container {
+  #container = document.createElement("div");
 
+  constructor(className) {
+    this.#container.className = className;
+  }
 
-export default function Container() {
-   this.el = document.createElement('div')
-
-   this.el.className = 'container'
-
-   this.install = () => {
-    document.body.appendChild(this.el)
-
-    return this.el
-   }
+  install = () => {
+    document.body.appendChild(this.#container);
+  };
 }
